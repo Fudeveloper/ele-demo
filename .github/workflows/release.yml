@@ -11,6 +11,9 @@ on:
 jobs:
   release:
     runs-on: windows-latest
+    # 默认 GITHUB_TOKEN 无权创建 Release，需显式授予 contents: write
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
