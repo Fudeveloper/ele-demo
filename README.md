@@ -83,7 +83,7 @@ pnpm dev -m electron
    ```
 3. **（可选）本地发布**：需要 `GH_TOKEN` 环境变量（classic PAT 需 `repo` 权限；fine-grained 需 Contents 读写权限）：
    ```powershell
-   $env:GH_TOKEN=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
+   $env:GH_TOKEN=<>
    pnpm build -m electron
    pnpm exec electron-builder --publish always
    ```
