@@ -83,9 +83,9 @@ pnpm dev -m electron
    ```
 3. **（可选）本地发布**：需要 `GH_TOKEN` 环境变量（classic PAT 需 `repo` 权限；fine-grained 需 Contents 读写权限）：
    ```powershell
-   $env:GH_TOKEN=<>
-   pnpm build -m electron
-   pnpm exec electron-builder --publish always
+   $env:GH_TOKEN="<你的 token>"
+   # -P always 透传给 electron-builder，与 publish 配置配合自动上传到 Releases
+   pnpm build -m electron -P always
    ```
 4. **CI 发布（推荐）**：项目已内置 `.github/workflows/release.yml`，打 tag 即可触发：
    ```bash

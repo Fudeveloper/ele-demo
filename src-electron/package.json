@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "drizzle-kit": "^0.30.0",
-    "electron": "^42.5.0"
+    "electron": "^42.5.0",
+    "electron-builder": "^26.0.12"
   }
 }

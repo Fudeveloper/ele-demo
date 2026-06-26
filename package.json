@@ -38,7 +38,6 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.19.11",
     "autoprefixer": "^10.4.27",
-    "electron-builder": "^25.1.8",
     "oxfmt": "^0.x",
     "oxlint": "^1.x",
     "oxlint-tsgolint": "^0.x",

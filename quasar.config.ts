@@ -1,7 +1,18 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { defineConfig } from "#q-app";
+
+// 从 src-electron 读取已安装的 electron 版本，避免 electron-builder 在
+// --prod 安装后的 UnPackaged 目录里找不到 electron 模块而报错。
+const electronPkg = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), "src-electron/node_modules/electron/package.json"),
+    "utf8"
+  )
+) as { version: string };
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -181,6 +192,10 @@ export default defineConfig((/* ctx */) => {
         // https://www.electron.build/configuration
         appId: "quasar-demo",
         productName: "test-demo",
+
+        // 显式指定 Electron 版本，避免 electron-builder 在打包后的
+        // UnPackaged 目录中找不到 electron 模块而无法推断版本。
+        electronVersion: electronPkg.version,
 
         // 自动更新发布源 —— 替换 <YOUR_GH_OWNER> 为你的 GitHub 用户名
         publish: {

@@ -27,13 +27,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Build Electron app
-        run: pnpm build -m electron
-
-      - name: Publish to GitHub Releases
+      - name: Build & Publish to GitHub Releases
         env:
           # 使用内置 GITHUB_TOKEN 即可发布到自己仓库的 Releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm exec electron-builder --publish always
+        # -P always 透传给 electron-builder，与 publish 配置配合自动上传
+        # latest.yml 与安装包到 GitHub Releases
+        run: pnpm build -m electron -P always
