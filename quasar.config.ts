@@ -5,14 +5,28 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig } from "#q-app";
 
-// 从 src-electron 读取已安装的 electron 版本，避免 electron-builder 在
-// --prod 安装后的 UnPackaged 目录里找不到 electron 模块而报错。
-const electronPkg = JSON.parse(
-  readFileSync(
-    resolve(process.cwd(), "src-electron/node_modules/electron/package.json"),
-    "utf8"
-  )
-) as { version: string };
+/**
+ * 读取 src-electron 中已安装的 electron 版本，避免 electron-builder 在
+ * --prod 安装后的 UnPackaged 目录里找不到 electron 模块而报错。
+ *
+ * 注意：该函数在 `quasar prepare`（root postinstall）阶段也会被调用，
+ * 此时 src-electron 的 node_modules 可能尚未安装，因此用 try/catch 兜底，
+ * 读不到时返回 undefined（prepare 不打包，无影响）；真正 `quasar build`
+ * 时 src-electron 已安装，能正确读到版本号。
+ */
+function readElectronVersion(): string | undefined {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), "src-electron/node_modules/electron/package.json"),
+        "utf8"
+      )
+    ) as { version?: string };
+    return pkg.version;
+  } catch {
+    return undefined;
+  }
+}
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -195,7 +209,9 @@ export default defineConfig((/* ctx */) => {
 
         // 显式指定 Electron 版本，避免 electron-builder 在打包后的
         // UnPackaged 目录中找不到 electron 模块而无法推断版本。
-        electronVersion: electronPkg.version,
+        ...(readElectronVersion()
+          ? { electronVersion: readElectronVersion() }
+          : {}),
 
         // 自动更新发布源 —— 替换 <YOUR_GH_OWNER> 为你的 GitHub 用户名
         publish: {
