@@ -20,10 +20,14 @@
     "dev": "quasar dev",
     "build": "quasar build",
     "typecheck": "vue-tsc --noEmit",
-    "postinstall": "quasar prepare --silent"
+    "rebuild:native": "node scripts/rebuild-native.mjs",
+    "postinstall": "quasar prepare --silent && node scripts/rebuild-native.mjs"
   },
   "dependencies": {
     "@quasar/extras": "^2.0.0",
+    "better-sqlite3": "^12.2.0",
+    "drizzle-orm": "^0.38.0",
+    "electron-updater": "^6.3.9",
     "pinia": "^3.0.1",
     "quasar": "^2.20.0",
     "vue": "^3.5.22",
@@ -31,8 +35,10 @@
   },
   "devDependencies": {
     "@quasar/app-vite": "^3.0.0-rc.3",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.19.11",
     "autoprefixer": "^10.4.27",
+    "electron-builder": "^25.1.8",
     "oxfmt": "^0.x",
     "oxlint": "^1.x",
     "oxlint-tsgolint": "^0.x",

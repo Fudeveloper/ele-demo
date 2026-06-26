@@ -13,3 +13,59 @@
  * }
  */
 interface ImportMetaEnv {}
+
+/** 学生信息输入 */
+interface StudentInput {
+  studentNo: string;
+  name: string;
+  gender: string;
+  age?: number | null;
+  major?: string | null;
+}
+
+/** 学生信息（数据库记录） */
+interface Student {
+  id: number;
+  studentNo: string;
+  name: string;
+  gender: string;
+  age: number | null;
+  major: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** 渲染进程可用的学生 CRUD API（由 electron-preload 注入） */
+interface StudentApi {
+  list: (keyword?: string) => Promise<Student[]>;
+  get: (id: number) => Promise<Student | undefined>;
+  create: (data: StudentInput) => Promise<Student>;
+  update: (id: number, data: StudentInput) => Promise<Student>;
+  remove: (id: number) => Promise<{ success: boolean; id: number }>;
+}
+
+/** 更新检查结果（由 electron-preload 注入） */
+interface UpdateCheckResult {
+  available: boolean;
+  reason?: "dev" | "no-update" | "ok";
+  version?: string;
+}
+
+/** 更新已下载信息 */
+interface UpdateDownloadedInfo {
+  version: string;
+  releaseNotes?: unknown;
+  releaseDate?: string;
+}
+
+/** 自动更新 API（由 electron-preload 注入） */
+interface UpdaterApi {
+  check: () => Promise<UpdateCheckResult>;
+  quitAndInstall: () => Promise<void>;
+  onUpdateDownloaded: (cb: (info: UpdateDownloadedInfo) => void) => () => void;
+}
+
+interface Window {
+  studentApi: StudentApi;
+  updaterApi: UpdaterApi;
+}
