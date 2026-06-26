@@ -213,11 +213,12 @@ export default defineConfig((/* ctx */) => {
           ? { electronVersion: readElectronVersion() }
           : {}),
 
-        // 自动更新发布源 —— 替换 <YOUR_GH_OWNER> 为你的 GitHub 用户名
+        // 自动更新发布源 —— 通过环境变量 GH_OWNER / GH_REPO 配置，
+        // 默认占位符需替换为真实仓库。环境变量优先级更高（方便 CI 覆盖）。
         publish: {
           provider: "github",
-          owner: "<YOUR_GH_OWNER>",
-          repo: "quasar-demo"
+          owner: process.env.GH_OWNER || "<YOUR_GH_OWNER>",
+          repo: process.env.GH_REPO || "quasar-demo"
         },
 
         win: {

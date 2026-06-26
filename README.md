@@ -73,26 +73,32 @@ pnpm dev -m electron
 
 ### 配置你的 GitHub 仓库（首次使用必做）
 
-1. **替换 owner 占位符**：打开 `quasar.config.ts`，把
-   `electron.builder.publish.owner` 中的 `<YOUR_GH_OWNER>` 改成你的 GitHub 用户名（`repo` 默认为 `quasar-demo`，如仓库名不同也一并修改）。
-2. **创建并推送仓库**：
+1. **创建并推送仓库**：
    ```bash
    # 在 GitHub 上 New repository，命名为 quasar-demo，不要勾选 init
-   git remote add origin https://github.com/<YOUR_GH_OWNER>/quasar-demo.git
+   git remote add origin https://github.com/<你的用户名>/quasar-demo.git
    git push -u origin master
    ```
-3. **（可选）本地发布**：需要 `GH_TOKEN` 环境变量（classic PAT 需 `repo` 权限；fine-grained 需 Contents 读写权限）：
-   ```powershell
-   $env:GH_TOKEN="<你的 token>"
-   # -P always 透传给 electron-builder，与 publish 配置配合自动上传到 Releases
-   pnpm build -m electron -P always
-   ```
-4. **CI 发布（推荐）**：项目已内置 `.github/workflows/release.yml`，打 tag 即可触发：
+2. **配置发布源**（两种方式任选其一）：
+   - **CI 发布（推荐，零配置）**：`.github/workflows/release.yml` 会自动从
+     当前仓库上下文注入 `GH_OWNER` / `GH_REPO`，**无需手动改任何配置**。
+     `quasar.config.ts` 中的 `publish.owner/repo` 通过环境变量读取，CI 自动覆盖。
+   - **本地发布**：需通过环境变量指定你的 GitHub 用户名 + 仓库，以及 `GH_TOKEN`
+     （classic PAT 需 `repo` 权限；fine-grained 需 Contents 读写权限）：
+     ```powershell
+     $env:GH_OWNER="<你的用户名>"
+     $env:GH_REPO="quasar-demo"
+     $env:GH_TOKEN="<你的 token>"
+     # -P always 透传给 electron-builder，与 publish 配置配合自动上传到 Releases
+     pnpm build -m electron -P always
+     ```
+     （也可以直接改 `quasar.config.ts` 里 `publish.owner` 的 `<YOUR_GH_OWNER>` 占位符。）
+3. **发布**：打 tag 触发 CI 自动构建并发布安装包 + `latest.yml` 到 Releases：
    ```bash
    git tag v0.1.0
    git push origin v0.1.0
    ```
-   workflow 使用内置的 `GITHUB_TOKEN`（无需额外配置 secret）即可把安装包 + `latest.yml` 发布到 Releases。
+   workflow 使用内置的 `GITHUB_TOKEN`（无需额外配置 secret）。
 
 ### 工作流程
 

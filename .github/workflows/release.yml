@@ -33,6 +33,9 @@ jobs:
         env:
           # 使用内置 GITHUB_TOKEN 即可发布到自己仓库的 Releases
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 从当前仓库自动推断 owner / repo，无需手动配置 quasar.config.ts
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
         # -P always 透传给 electron-builder，与 publish 配置配合自动上传
         # latest.yml 与安装包到 GitHub Releases
         run: pnpm build -m electron -P always
