@@ -4,19 +4,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/",
     component: () => import("@/layouts/MainLayout.vue"),
+    redirect: "/accounts",
     children: [
-      { path: "", component: () => import("@/pages/IndexPage.vue") },
-      { path: "second", component: () => import("@/pages/SecondPage.vue") },
-      { path: "students", component: () => import("@/pages/StudentsPage.vue") }
-    ]
+      { path: "accounts", component: () => import("@/pages/AccountsPage.vue") },
+      { path: "products", component: () => import("@/pages/ProductsPage.vue") },
+      { path: "upload", component: () => import("@/pages/UploadPage.vue") },
+      { path: "images", component: () => import("@/pages/ImagesPage.vue") },
+      { path: "jobs", component: () => import("@/pages/JobsPage.vue") },
+    ],
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
   {
     path: "/:catchAll(.*)*",
-    component: () => import("@/pages/ErrorNotFound.vue")
-  }
+    component: () => import("@/pages/ErrorNotFound.vue"),
+  },
 ];
 
 export default routes;

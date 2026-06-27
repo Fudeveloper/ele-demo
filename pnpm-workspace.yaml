@@ -8,4 +8,5 @@ allowBuilds:
   esbuild: true
   lightningcss: true
   rolldown: true
+  sharp: true
   unrs-resolver: true

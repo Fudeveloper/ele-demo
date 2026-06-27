@@ -179,8 +179,15 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron
     electron: {
-      // extendElectronMainConf (rolldownConf) {},
-      // extendElectronPreloadConf (rolldownConf) {},
+      extendElectronMainConf(rolldownConf) {
+        // 根 package.json 是 "type": "module"，.js 被当作 ESM。
+        // 但 Quasar 打包后的代码中部分依赖使用了 __dirname（CJS 全局变量）。
+        // 通过 intro 注入 polyfill，用 import.meta.dirname 替代。
+        const out = rolldownConf.output;
+        if (out && typeof out === 'object' && !Array.isArray(out)) {
+          out.intro = 'const __dirname = import.meta.dirname;\n' + (out.intro ?? '');
+        }
+      },
       // extendElectronPackageJson (pkgJson) {},
 
       // Electron preload scripts (if any) from /src-electron, WITHOUT file extension
@@ -204,14 +211,30 @@ export default defineConfig((/* ctx */) => {
 
       builder: {
         // https://www.electron.build/configuration
-        appId: "quasar-demo",
-        productName: "test-demo",
+        appId: "com.gigab2b.tool",
+        productName: "GIGA B2B 工具台",
 
         // 显式指定 Electron 版本，避免 electron-builder 在打包后的
         // UnPackaged 目录中找不到 electron 模块而无法推断版本。
         ...(readElectronVersion()
           ? { electronVersion: readElectronVersion() }
           : {}),
+
+        // 额外资源：Amazon Image Studio 静态文件，放到 resources/studio
+        extraResources: [
+          {
+            from: "src-electron/assets/studio",
+            to: "studio",
+            filter: ["**/*"],
+          },
+        ],
+
+        // 原生模块解包（better-sqlite3 / sharp 不能在 asar 内加载）
+        asarUnpack: [
+          "**/node_modules/better-sqlite3/**",
+          "**/node_modules/sharp/**",
+          "**/node_modules/@img/**",
+        ],
 
         // 自动更新发布源 —— 通过环境变量 GH_OWNER / GH_REPO 配置，
         // 默认占位符需替换为真实仓库。环境变量优先级更高（方便 CI 覆盖）。

@@ -1,13 +1,18 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, protocol, session } from "electron";
 import path from "node:path";
 import os from "node:os";
 import {
   registerQuasarRuntime,
   resolveElectronAssetsPath
 } from "#q-app/electron/main";
-import { initDb } from "./db";
-import { registerStudentIpc } from "./ipc/student";
+import { initDb, runStartupMaintenance } from "./db";
+import { registerGigaIpc } from "./ipc/giga";
 import { registerUpdaterIpc, checkForUpdates } from "./updater";
+import { getConfig } from "./config";
+import { startPriceInventoryTimer } from "./priceInventoryTimer";
+import { registerFileProtocolSchemes, registerFileProtocol } from "./fileProtocol";
+import { startStudioServer } from "./studio/studioServer";
+import { GigaB2BApiError } from "./lib/gigab2b/exceptions";
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -18,8 +23,10 @@ async function createWindow() {
    */
   const mainWindow = new BrowserWindow({
     icon: resolveElectronAssetsPath("icons/icon.png"), // linux
-    width: 1000,
-    height: 600,
+    width: 1280,
+    height: 800,
+    minWidth: 1024,
+    minHeight: 640,
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
@@ -38,22 +45,46 @@ async function createWindow() {
   registerUpdaterIpc(mainWindow);
 
   if (import.meta.env.QUASAR_DEBUG) {
-    // if on DEV or Production with debug enabled
     mainWindow.webContents.openDevTools();
   } else {
-    // we're on production; no access to devtools pls
     mainWindow.webContents.on("devtools-opened", () => {
       mainWindow?.webContents.closeDevTools();
     });
   }
 }
 
+// 自定义协议方案必须在 app ready 前注册
+registerFileProtocolSchemes();
+
 void app.whenReady().then(async () => {
   await registerQuasarRuntime();
 
-  // 初始化数据库 & 注册 IPC（主进程）
+  // 初始化配置（加载 .env）
+  try {
+    getConfig();
+  } catch (err) {
+    console.error("[配置] 加载失败:", err);
+  }
+
+  // 初始化数据库 & 启动维护
   initDb();
-  registerStudentIpc();
+  runStartupMaintenance();
+
+  // 注册文件协议（modify-images / local-images 静态服务）
+  registerFileProtocol();
+
+  // 注册 GIGA 业务 IPC
+  registerGigaIpc();
+
+  // 启动 Studio 本地服务（图片工作台 + 反向代理）
+  try {
+    await startStudioServer();
+  } catch (err) {
+    console.warn("[工作台] 服务启动失败:", err);
+  }
+
+  // 启动价格/库存定时同步
+  startPriceInventoryTimer();
 
   void createWindow();
 
@@ -76,3 +107,7 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+void session;
+void protocol;
+void GigaB2BApiError;

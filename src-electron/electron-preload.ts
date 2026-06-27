@@ -1,113 +1,78 @@
 /**
- * This file is used specifically for security reasons.
- * Here you can access Nodejs stuff and inject functionality into
- * the renderer thread (accessible there through the "window" object)
- *
- * WARNING!
- * If you import anything from node_modules, then make sure that the package is specified
- * in /src-electron/package.json > dependencies and NOT in devDependencies
- *
- * Example (injects window.myAPI.doAThing() into renderer thread):
- *
- *   import { contextBridge } from 'electron'
- *
- *   contextBridge.exposeInMainWorld('myAPI', {
- *     doAThing: () => {}
- *   })
- *
- * WARNING!
- * If accessing Node functionality (like importing @electron/remote) then in your
- * electron-main.ts you will need to set the following when you instantiate BrowserWindow:
- *
- * mainWindow = new BrowserWindow({
- *   // ...
- *   webPreferences: {
- *     // ...
- *     sandbox: false // <-- to be able to import @electron/remote in preload script
- *   }
- * }
+ * Electron preload —— 暴露主进程能力给渲染进程。
  */
 
 import { contextBridge, ipcRenderer } from "electron";
 import { quasarRuntime } from "#q-app/electron/preload";
 
-/** 学生信息输入 */
-export interface StudentInput {
-  studentNo: string;
-  name: string;
-  gender: string;
-  age?: number | null;
-  major?: string | null;
+/** 通用 IPC 调用封装。 */
+function invoke<T = unknown>(channel: string, ...args: unknown[]): Promise<T> {
+  return ipcRenderer.invoke(channel, ...args);
 }
 
-/** 学生信息（数据库记录） */
-export interface Student {
-  id: number;
-  studentNo: string;
-  name: string;
-  gender: string;
-  age: number | null;
-  major: string | null;
-  createdAt: number;
-  updatedAt: number;
-}
+/**
+ * GIGA 业务 API。对应原 Flask `/api/*` 路由，全部返回 `{success, message?, ...data}`。
+ */
+const gigaApi = {
+  // 账号
+  accountsList: () => invoke("accounts:list"),
+  accountsCreate: (payload: Record<string, unknown>) => invoke("accounts:create", payload),
+  accountsUpdate: (id: number, payload: Record<string, unknown>) => invoke("accounts:update", id, payload),
+  accountsReplace: (id: number, payload: Record<string, unknown>) => invoke("accounts:replace", id, payload),
+  accountsDelete: (id: number) => invoke("accounts:delete", id),
+  accountsBatchDelete: (payload: { account_ids: number[] }) => invoke("accounts:batchDelete", payload),
+  accountsTest: (id: number) => invoke("accounts:test", id),
+  accountsImportCsv: (csvText: string) => invoke("accounts:importCsv", csvText),
+  accountsSync: (id: number, payload: { full?: boolean }) => invoke("accounts:sync", id, payload),
 
-/** 更新检查结果 */
-export interface UpdateCheckResult {
-  available: boolean;
-  reason?: "dev" | "no-update" | "ok";
-  version?: string;
-}
+  // 商品
+  productsList: (params: Record<string, unknown>) => invoke("products:list", params),
+  productsDelete: (id: number) => invoke("products:delete", id),
+  productsBatchDelete: (payload: { product_ids: number[] }) => invoke("products:batchDelete", payload),
+  productsUpdateFlags: (id: number, payload: Record<string, unknown>) => invoke("products:updateFlags", id, payload),
+  productsBatchFlags: (payload: { product_ids: number[] } & Record<string, unknown>) => invoke("products:batchFlags", payload),
+  productsManualSync: (payload: { account_ids: number[]; input_type: string; values: string }) => invoke("products:manualSync", payload),
+  productsFullSync: (payload: { account_ids: number[]; full?: boolean }) => invoke("products:fullSync", payload),
+  productsBatchPriceInventorySync: (payload: { product_ids: number[] }) => invoke("products:batchPriceInventorySync", payload),
+  productsBatchSkuInfoSync: (payload: { product_ids: number[] }) => invoke("products:batchSkuInfoSync", payload),
+  productsGetImages: (id: number) => invoke("products:getImages", id),
+  productsUploadLocalImages: (payload: { account_id: number; item_code: string; product_name: string; files: { name: string; data: ArrayBuffer }[] }) => invoke("products:uploadLocalImages", payload),
 
-/** 更新已下载的信息 */
-export interface UpdateDownloadedInfo {
-  version: string;
-  releaseNotes?: unknown;
-  releaseDate?: string;
-}
+  // 收藏
+  favoritesCancelAll: (payload: { account_ids: number[] }) => invoke("favorites:cancelAll", payload),
 
-const studentApi = {
-  list: (keyword?: string): Promise<Student[]> =>
-    ipcRenderer.invoke("student:list", keyword),
-  get: (id: number): Promise<Student | undefined> =>
-    ipcRenderer.invoke("student:get", id),
-  create: (data: StudentInput): Promise<Student> =>
-    ipcRenderer.invoke("student:create", data),
-  update: (id: number, data: StudentInput): Promise<Student> =>
-    ipcRenderer.invoke("student:update", id, data),
-  remove: (id: number): Promise<{ success: boolean; id: number }> =>
-    ipcRenderer.invoke("student:delete", id)
+  // 图片
+  imagesGenerate: (payload: { product_ids: number[]; flip_source?: boolean }) => invoke("images:generate", payload),
+  imagesRegenerate: (payload: { product_ids: number[] }) => invoke("images:regenerate", payload),
+  productsRegenerateImages: (id: number, payload: { indices: number[] }) => invoke("products:regenerateImages", id, payload),
+  productsApproveImage: (id: number, payload: { index: number; selected_path?: string }) => invoke("products:approveImage", id, payload),
+  productsRejectImage: (id: number, payload: { index: number; selected_path?: string }) => invoke("products:rejectImage", id, payload),
+
+  // WPS
+  productsWpsSync: (id: number) => invoke("products:wpsSync", id),
+  productsBatchWpsSync: (payload: { product_ids: number[] }) => invoke("products:batchWpsSync", payload),
+
+  // 任务
+  jobsList: () => invoke("jobs:list"),
+  jobsGet: (id: number) => invoke("jobs:get", id),
+
+  // 文件代理
+  fileUrl: (path: string) => `app://giga-files/${path}`,
+  /** 打开 Amazon Image Studio 窗口。 */
+  openStudio: () => invoke("studio:open"),
 };
 
+/** 自动更新 API（沿用原项目）。 */
 const updaterApi = {
-  /** 手动检查更新 */
-  check: (): Promise<UpdateCheckResult> => ipcRenderer.invoke("updater:check"),
-  /** 退出并安装已下载的更新 */
+  check: (): Promise<unknown> => ipcRenderer.invoke("updater:check"),
   quitAndInstall: (): Promise<void> => ipcRenderer.invoke("updater:quitAndInstall"),
-  /** 监听「更新已下载」事件，返回取消监听的函数 */
-  onUpdateDownloaded: (
-    cb: (info: UpdateDownloadedInfo) => void
-  ): (() => void) => {
-    const handler = (
-      _event: Electron.IpcRendererEvent,
-      info: UpdateDownloadedInfo
-    ): void => cb(info);
+  onUpdateDownloaded: (cb: (info: unknown) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, info: unknown): void => cb(info);
     ipcRenderer.on("update:downloaded", handler);
     return () => ipcRenderer.removeListener("update:downloaded", handler);
-  }
+  },
 };
 
-/**
- * Can be used in the renderer process through `window.quasarRuntime`
- */
 contextBridge.exposeInMainWorld("quasarRuntime", quasarRuntime);
-
-/**
- * 学生信息 CRUD API，渲染进程可通过 `window.studentApi` 访问
- */
-contextBridge.exposeInMainWorld("studentApi", studentApi);
-
-/**
- * 自动更新 API，渲染进程可通过 `window.updaterApi` 访问
- */
+contextBridge.exposeInMainWorld("gigaApi", gigaApi);
 contextBridge.exposeInMainWorld("updaterApi", updaterApi);

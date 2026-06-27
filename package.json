@@ -28,6 +28,7 @@
     "better-sqlite3": "^12.2.0",
     "drizzle-orm": "^0.38.0",
     "electron-updater": "^6.3.9",
+    "mime-types": "^3.0.2",
     "pinia": "^3.0.1",
     "quasar": "^2.20.0",
     "vue": "^3.5.22",
@@ -36,16 +37,26 @@
   "devDependencies": {
     "@quasar/app-vite": "^3.0.0-rc.3",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^22.19.11",
     "autoprefixer": "^10.4.27",
+    "drizzle-kit": "0.30.6",
+    "electron": "42.5.0",
     "oxfmt": "^0.x",
     "oxlint": "^1.x",
     "oxlint-tsgolint": "^0.x",
+    "sharp": "0.34.5",
     "typescript": "^6.0.0",
     "vue-tsc": "^3.3.3"
   },
   "engines": {
     "node": ">= 26 || ^24 || ^22.12"
   },
-  "productName": "test-demo"
+  "productName": "GIGA B2B 工具台",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "better-sqlite3"
+    ]
+  }
 }
